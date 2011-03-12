@@ -1,0 +1,4 @@
+process - C++ program to extract the P lines
+java program to extract the go,pmid and functions terms
+replace ' with \' in file
+jdbc connectivity to populate the database

@@ -1,0 +1,18 @@
+#!/usr/local/bin/bash
+
+if test $# -ne 1
+then
+  echo "usage: $0 <directory>"
+  exit 1
+fi
+
+DIR=$1
+NODES=/tmp/nodes.$$
+LINKS=/tmp/links.$$
+
+trap "rm $NODES $LINKS >/dev/null 2>&1" EXIT SIGHUP SIGINT SIGTERM SIGQUIT
+
+find $DIR -print | ./addfileid | ./shownodes >$NODES
+find $DIR -print | ./showlinks >$LINKS
+./mkgraph $NODES $LINKS
+

@@ -1,0 +1,121 @@
+<html>
+  <head>
+    <title>My first X3DOM page</title>
+    <link rel="stylesheet" type="text/css" 
+          href="http://www.x3dom.org/x3dom/release/x3dom.css">
+    </link>
+    <script type="text/javascript" 
+            src="http://www.x3dom.org/x3dom/release/x3dom.js">
+    </script>
+	<style>
+			html{width:100%;height:100%;margin:0;padding:0;}
+            body{margin:0;padding:10px;width:100%;height:100%;}
+            #tools{top:0;left:0;margin:0;padding:0;position:absolute;display:inline;z-index:100;}
+            #tools li{line-height:0px;list-style-type:none;display:inline;padding:0;margin:0 -4px 0 0;float:left;}
+            #tools li button{border:1px solid #666;background-color:#202021;color:#ccc;padding:4px;margin:0;display:inline;margin-top:-1px;}
+            #tools li:first-child button{margin-left:-1px;}
+            #tools li button:hover{background-color:blue;}
+            #the-element{position:relative;display:block;line-height:0px;padding:0;display:block;background:#000 
+	</style>
+	<script> 
+			var zoomed = false;
+ 
+			function toggle_size(button) {
+ 
+				var body = document.getElementById('main');
+				var title = document.getElementById('title');
+				var x3d_element = document.getElementById('the-element');
+				
+				var new_width_css = "100%";
+ 
+				if (zoomed) {
+					body.style.padding = "10px";
+					title.style.display = "block";
+					button.style.backgroundColor = "#202021";
+                    x3d_element.style.borderWidth  = "1px"
+					new_width = "50%";
+				} else {
+					body.style.padding = "0";
+					title.style.display = "none";
+					button.style.backgroundColor = "#c23621";
+                    x3d_element.style.borderWidth  = "0"
+					new_width = "100%";
+				}
+ 
+				zoomed = !zoomed;
+                
+                x3d_element.style.width  = new_width
+                x3d_element.style.height = new_width
+                return true;
+			}
+ 
+			// Change a style via elm.style accessor
+			var bg_styled = false;
+			function toggle_background(button) {
+ 
+				var x3d_element = document.getElementById('the-element');
+ 
+				if (bg_styled) {
+                    x3d_element.style.backgroundColor = '#000'
+					x3d_element.style.backgroundImage = "url(http://ocebackgrounds.files.wordpress.com/2008/06/picture-3.png)"
+					button.style.backgroundColor = "#202021";
+				} else {
+                    x3d_element.style.backgroundColor = '#0f0'
+					x3d_element.style.backgroundImage = "none"
+					button.style.backgroundColor = "#c23621";
+				}
+				bg_styled = !bg_styled
+				return true;
+			}
+		</script> 
+		
+	<style>
+	body {
+        margin:0;
+        padding:15px;
+    }
+    #the_element {
+			border-width: 5px;
+			border-color: #0000FF;
+			width: 100%;
+			height: 50%;
+			background:#000 url(http://www.x3dom.org/x3dom/example/texture/solarSystem/starsbg.png);
+			 
+    }
+	</style>
+  </head>
+  <body>
+     <div id = 'title'>
+		<h1>My X3DOM world</h1>
+		<p>
+		  This is my first html page with some 3d objects.
+		</p>
+	</div>
+	<!--width="500px" height="400px"-->
+	<x3d id= the_element>
+		
+	  <scene>
+	    <ul id="tools"> 
+			<li><button onclick="toggle_size(this);">Zoom</button></li> 
+			<li class="last"><button onclick="toggle_background(this);">Change background</button></li> 
+		</ul> 
+		<transform translation="-2 0 0">
+		  <shape>
+			<appearance>
+			  <material diffuseColor='red'></material>  
+			</appearance>
+			<box></box>
+		  </shape>
+		</transform>
+		<transform translation="2 0 0">
+		  <shape>
+			<appearance>
+			  <material diffuseColor='blue' specularColor = '0.6 0.6 0.6' shininess = '0.145'></material>  
+			</appearance>
+			<sphere></sphere>
+		  </shape>
+		</transform>
+	  </scene>
+	</x3d>
+  </body>
+</html>

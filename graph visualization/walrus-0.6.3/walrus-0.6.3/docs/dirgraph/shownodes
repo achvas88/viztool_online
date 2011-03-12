@@ -1,0 +1,122 @@
+#!/usr/local/bin/perl -w
+
+use strict;
+use File::Basename;
+
+#---------------------------------------------------------------------------
+# Feed the output of the following to this script:
+#
+#   find / -print | ./addfileid
+#
+#---------------------------------------------------------------------------
+# The input lines take one of three basic forms, depending on the file type:
+#
+#  1) normal file or directory (not symbolic link):
+#
+#      <dev>":"<inode> _ <mtime> _ <perm> _ <links> _ <uid> _ <gid> _ \
+#          <size> _ <month> _ <day> _ <year/time> _ <fname>
+#
+#  2) symbolic link:
+#
+#      <dev>":"<inode> _ <mtime> _ <perm> _ <links> _ <uid> _ <gid> _ \
+#          <size> _ <month> _ <day> _ <year/time> _ <symname> _ "->" _ <fname>
+#
+#   or (note missing <fname>)
+#
+#      <dev>":"<inode> _ <mtime> _ <perm> _ <links> _ <uid> _ <gid> _ \
+#          <size> _ <month> _ <day> _ <year/time> _ <symname> _ "->"
+#
+#  3) special file:
+#
+#      <dev>":"<inode> _ <mtime> _ <perm> _ <links> _ <uid> _ <gid> _ \
+#          <major> "," _ <minor> _ <month> _ <day> _ <year/time> _ <fname>
+#
+#   or (note missing space before <minor>)
+#
+#      <dev>":"<inode> _ <mtime> _ <perm> _ <links> _ <uid> _ <gid> _ \
+#          <major> "," <minor> _ <month> _ <day> _ <year/time> _ <fname>
+#
+# where _ = one or more whitespace characters,
+#       <dev> = device number of the filesystem containing the file,
+#       <inode> = inode of the file,
+#       <mtime> = last modification time as seconds since epoch,
+#       <perm> = the usual string form of the permissions,
+#       <links> = number of hard links,
+#       <uid> = the user ID, either as a number or a string,
+#       <gid> = the group ID, either as a number or a string,
+#       <size> = file size (in bytes),
+#       <major> = major device number,
+#       <minor> = minor device number,
+#       <month> = month as a string,
+#       <day> = day as a number,
+#       <year/time> = either year or 24-hour time (hh:mm),
+#       <fname> = filename with absolute/relative path
+#                 (for symbolic links, the filename of target),
+#   and <symname> = filename with absolute/relative path of symbolic link.
+#
+# NOTE: Filenames may contain spaces.
+#
+# For a nice look, print <day> in a two-character field, and <year/time> in
+# a five-character field.
+#
+#---------------------------------------------------------------------------
+
+while (<>)
+{
+    if ((my @line = split) >= 2)
+    {
+        if ($#line >= 5)
+        {
+            print "$line[0]\t$line[1]\t$line[2]\t$line[4]\t$line[5]";
+        }
+
+        my $perm = $line[2];
+        if ($perm =~ /^(\-|d|p|s|D)/)
+        {
+            if ($#line >= 10)
+            {
+                print "\t$line[6]";
+                printf("\t%s %2s %5s", $line[7], $line[8], $line[9]);
+
+		my $filename = join " ", @line[10..$#line];
+                my $basename = basename($filename);
+                print "\t$basename\t$filename\n";
+                next;
+            }
+        }
+        elsif ($perm =~ /^l/)
+        {
+            if ($#line >= 11)
+            {
+                print "\t$line[6]";
+                printf("\t%s %2s %5s", $line[7], $line[8], $line[9]);
+
+		my $names = join " ", @line[10..$#line];
+		my @parts = split /\-\>/, $names;
+		my $link = $parts[0];
+		my $target = ($#parts == 0 ? "" : $parts[1]);
+                my $basename = basename($link);
+                print "\t$basename\t$link->$target\n";
+                next;
+            }
+        }
+        elsif ($perm =~ /^(b|c)/)
+        {
+	    my $i = ($line[6] =~ /\,[0-9]/ ? 7 : 8);
+            if ($#line >= $i + 3)
+            {
+	        print "\t0";
+                printf("\t%s %2s %5s", $line[$i], $line[$i+1], $line[$i+2]);
+
+		my $j = $i + 3;
+		my $filename = join " ", @line[$j..$#line];
+                my $basename = basename($filename);
+                print "\t$basename\t$filename\n";
+                next;
+            }
+        }
+    }
+
+    die "ERROR: Line $. is malformed.\n";
+}
+

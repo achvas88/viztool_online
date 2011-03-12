@@ -1,0 +1,44 @@
+===========================================================================
+WALRUS GUIDE
+===========================================================================
+
+The file 'guide.txt' contains a brief guide to using Walrus.  It describes
+the menus and the mouse controls, and provides supplementary information
+about the LibSea graph files that Walrus uses.
+
+
+===========================================================================
+DIRGRAPH SCRIPTS
+===========================================================================
+
+The 'dirgraph' subdirectory contains some scripts for generating Walrus
+graphs from directory trees.  They may prove useful in helping to clarify
+the details of the graph format, and they are available for you to build
+upon in your own work.  See the file 'walrus-directory.graph' in the
+'samples' subdirectory of this distribution for a sample of the generated
+graphs.
+
+These scripts require Perl and Bash (both in /usr/local/bin), although a
+Bourne shell may be substituted for the latter with some minor tweaking of
+the scripts.  There are five files, but the main script is 'dirgraph'; the
+others are auxillary scripts invoked by 'dirgraph'.  This script takes a
+directory name as its sole parameter and writes out a graph to stdout.  For
+example, to create a graph from all mounted filesystems, do the following
+from within the 'dirgraph' subdirectory:
+
+  $ ./dirgraph / >root.graph
+
+
+===========================================================================
+LIBSEA DOCUMENTATION
+===========================================================================
+
+The file 'graph-format.txt' describes the syntax of the LibSea graph file
+format.  Walrus currently ignores any paths, visualization hints, or
+interface hints stored in a file.
+
+The file 'graph-examples.txt' contains some examples of graphs of varying
+complexity.  Because Walrus relies on conventions beyond the minimum
+requirements of a well-formed LibSea graph, these examples are not Walrus
+graphs.  Nevertheless, they should be helpful in clarifying the file
+format.

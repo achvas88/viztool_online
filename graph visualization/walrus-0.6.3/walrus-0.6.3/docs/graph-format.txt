@@ -1,0 +1,476 @@
+ASCII GRAPH FILE FORMAT DESIGN SPECIFICATION
+
+Last revised Nov 8, 2001
+
+
+---------------------------------------------------------------------------
+INTRODUCTION
+---------------------------------------------------------------------------
+
+Design criteria:
+
+ - The format must be compact.
+ - It need not be self-describing.
+ - Syntax should be simple and regular, not fancy or eccentric.
+ - It is intended to be read and written by machines not humans.
+ - It must be amendable to parsing in one pass.
+ - It must not require intermediate structures while parsing.
+ - It should be convenient for reading into different internal representations:
+      (i) attribute values grouped by attribute definition, and
+     (ii) attribute values grouped by object.
+ - The file parser should not need to parse code in the expression language.
+ - Evolving the format should not be a continual exercise in design.
+ - It should not require hash tables to connect together objects.
+ - It should be convenient for reading into fixed-size and adjustable internal
+   representations.
+
+Why not use XML instead of a custom file format?
+
+ - The full XML standard is complex and too featureful for our needs.
+ - XML support is not a standard feature of most languages (C,C++,Java,Perl).
+ - XML parsers are complicated and large (adds bulk and instability).
+ - XML parsers may not scale gracefully to large files (not memory efficient).
+ - The XML format is too verbose.
+ - We care about data interchange not format interchange.
+
+---------------------------------------------------------------------------
+SUBSTRATE
+---------------------------------------------------------------------------
+
+ - There is an implied substrate of tuples and lists.
+ - Tuples are ordered sets of values.
+ - This is probably general enough to accommodate future needs.
+ - We may or may not want to take advantage of this fact in the parser.
+ - This makes the syntax regular and predictable (like in LISP and XML).
+ - The substrate has approximately the following structure (see below
+   for an explanation of the metalanguage):
+
+<file> == <value>
+
+<value> == <ident>
+<value> == <bool>
+<value> == <int>
+<value> == <float>
+<value> == <string>
+<value> == <code>
+<value> == <list>
+<value> == <tuple>
+<value> == <ident> <value>
+
+<list> == [ <value> , ... ]
+
+<tuple> == { <value> ; ... ; }
+
+
+---------------------------------------------------------------------------
+METALANGUAGE
+---------------------------------------------------------------------------
+
+The metalanguage used to describe the file format has the following syntax:
+
+  syntax                          meaning
+  --------------   --------------------------------------
+
+    <  >           a token or a nonterminal in the grammar
+    ==             connects a nonterminal to its definition
+    ##             introduces a single-line comment
+    (opt)          in comments, indicates an optional component of a tuple
+    ...            indicates elision, or repetition of preceding elements,
+                    which should be clear by context
+
+Everything else--including the characters "{", "}", "[", "]", ",", ";", "=",
+"#", "@", and "$"--should be taken as literal text in the file format.
+
+
+---------------------------------------------------------------------------
+LEXICAL STRUCTURE
+---------------------------------------------------------------------------
+
+A graph file is made up from whitespace, keywords, punctuation symbols,
+identifiers, and literals.  Spaces, tabs, formfeeds, carriage returns, and
+newlines are whitespace characters.  Lines must end in a newline, which may,
+however, be immediately preceeded by a carriage return (the carriage return
+is simply discarded).
+
+Comments are supported and are also considered whitespace (and hence they
+serve to separate adjacent characters which may otherwise be taken to form
+a single token).  There are two kinds of comments, single-line comments and
+"tag comments".  A single-line comment is introduced by a '#' character and
+extends to the end of the given line.  A tag comment is introduced by an '@'
+character and extends to the first following '=' character.  Unlike single-
+line comments, however, the body of a tag comment is restricted to be an
+identifier (as defined below), though possibly preceded and/or followed by
+whitespace.  These tag comments are useful in annotating the graph file so
+that elements may be identified easily during debugging.  For example, we
+could add tag comments to
+
+    { "Bandwidth Graph"; 5; }
+
+to get
+
+    { @name="Bandwidth Graph"; @source=5; }
+
+which is much easier to understand and search for.
+
+The keywords are Graph, T, F, bool, int, float, double, string, float3,
+double3, enum, and list.
+
+The punctuation symbols are curly brackets ({ and }), square brackets ([ and
+]), semicolon (;), and comma (,).
+
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Tokens and Literals:
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+Regular expressions which appear in the following descriptions are in the
+syntax of perl.
+
+<ident> == usual alphanumeric identifier ([_a-zA-Z][_a-zA-Z0-9]*)
+           preceded by "$"; e.g., $bytes.  There can be whitespace between
+           $ and the first actual character of the identifier.
+
+<bool> == T
+<bool> == F
+
+<int> == usual 32-bit signed integer literal: (-)?[0-9]+
+         Note that a leading '+' is not allowed.
+
+<float> == usual single-precision float literal followed by an optional
+         exponent and a mandatory 'f': (-)?[0-9]+\.((e|E)(\+|\-)?[0-9]+)?f
+         Note how unlike C, there must always be a digit before and after
+         the decimal point.
+
+<double> == usual double-precision float literal, with optional exponent:
+         (-)?[0-9]+\.((e|E)(\+|\-)?[0-9]+)?
+
+<string> == usual double-quoted string literal with limited C-style escapes,
+	 namely, \\, \", \n, \r, \t, \f, \b, and the unusual \| (see <code>).
+         A string may not contain unescaped newlines or carriage returns.
+
+<code> == || ... ||
+         Uninterpreted (not parsed) block of code, with limited C-style
+         escapes (same as for strings), including \| to escape bars which
+         may be mistaken for the delimiters.  A code literal may not contain
+         unescaped newlines or carriage returns.
+
+---------------------------------------------------------------------------
+GRAMMATICAL STRUCTURE
+---------------------------------------------------------------------------
+
+::: ID NUMBERS :::
+
+ID numbers are used in graph files to connect together related objects.
+These numbers are used to identify, for example, the nodes at the ends of
+links and the links making up a path.  In the file format, no object is
+ever explicitly given an ID, even though objects are referenced by ID.
+This was done on purpose in order to eliminate a possible source of
+inconsistency and also to avoid creating extra work on the parser/loader
+(which otherwise would have to be able to deal with objects given out of
+order and to verify that no IDs were duplicated or skipped).  Objects are
+instead assigned IDs implicitly according to their position in a file.  For
+instance, the first link encountered in a file is assigned the ID 0, the
+next is assigned 1, and so on.  Each kind of object (node, link, path,
+attribute, enumeration, enumerator, etc.) has its own range of IDs, and
+each range starts at zero and increases without gaps.  Note especially that
+although enumerators are grouped within enumerations, their numbering spans
+across these groupings, so that, for example, the first enumerator of the
+second enumeration may have, say, the ID 5.  (Enumerations and enumerators
+are like the constructs in the C programming language.)
+
+::: OPTIONAL TUPLE COMPONENTS :::
+
+Some tuples in the grammar have optional components (as noted in the
+grammar below with '(opt)').  In an actual graph file, components without
+values are indicated with a blank at their position.  As an example of how
+this works, suppose a tuple is defined to have five components with the
+first and third being optional.  An actual tuple that supplies all values
+would look like this:
+
+         { A; B; C; D; }
+
+And one without the optional components would look like this:
+
+         { ; B; ; D; }
+
+Because components are ordered and because semicolons are required
+at all times, the parser has no trouble determining which components
+were left out.
+
+::: PATHS :::
+
+A path is a connected sequence of links.  The alternative definition of
+paths, as a sequence of nodes, would have been ambiguous in the presence of
+multiple links between pairs of nodes.
+
+Graph files include a count of the total number of links used in all paths.
+If the length of a path is defined to be the number of links in the path
+(counting each occurrence of links that appear more than once), then the
+total number of links in all paths is simply the sum of the lengths of all
+paths.  Providing this count early in the file makes it possible for a
+program to use simple static data structures to represent paths.
+
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Grammar:
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+<file> == <graph>
+
+<graph> ==
+    Graph
+    {
+       ### metadata ###
+
+        <string> ;  ## (opt) name
+        <string> ;  ## (opt) description
+
+        <int> ;     ## number of nodes
+        <int> ;     ## number of links
+        <int> ;     ## number of paths
+        <int> ;     ## number of links in all paths
+
+       ### structural data ###
+
+        # A list of the nodes making up a graph is unnecessary, since
+        # nodes by themselves only have IDs, and IDs are assigned
+        # implicitly.  The values of node attributes are given below
+        # in the <attr-def> list.
+
+        [ <link> , ... ] ;  ## (opt)
+        [ <path> , ... ] ;  ## (opt)
+
+       ### attribute data ###
+
+        [ <enum-def> , ... ] ;   ## (opt)
+        [ <attr-def> , ... ] ;   ## (opt)
+        [ <qualifier> , ... ] ;  ## (opt)
+
+       ### visualization hints ###
+
+        [ <filter> , ... ] ;        ## (opt)
+        [ <selector> , ... ] ;      ## (opt)
+        [ <display> , ... ] ;       ## (opt)
+        [ <presentation> , ... ] ;  ## (opt)
+
+       ### interface hints ###
+
+        [ <presentation-menu> , ... ] ;  ## (opt)
+        [ <display-menu> , ... ] ;       ## (opt)
+        [ <selector-menu> , ... ] ;      ## (opt)
+        [ <filter-menu> , ... ] ;        ## (opt)
+        [ <attribute-menu> , ... ] ;     ## (opt)
+    }
+
+<node-id> == <int>
+
+<link> ==
+    {
+        <node-id> ;  ## source
+        <node-id> ;  ## destination
+    }
+
+<link-id> == <int>
+
+<path> ==
+    {
+        [ <link-id> , ... ] ;  ## component links in order;
+    }                          ## link direction determines path direction
+
+<path-id> == <int>
+
+<enum-def> ==
+    {
+        <ident> ;  ## name (unique over all enumerations)
+        [ <enumerator> , ... ] ;
+    }
+
+<enum-def-id> == <int>
+
+<enumerator-id> == <int>
+
+<enumerator> ==
+    {
+        <ident> ;  ## name (unique in a given enumeration)
+        <int> ;    ## value
+    }
+
+<attr-def> ==
+    {
+        <ident> ;          ## name (unique over all attributes)
+        <attr-type> ;      ## type
+        <attr-def-value> ; ## (opt) default value, may be computed
+        [ <node-attr> , ... ] ;  ## (opt) node attribute values
+        [ <link-attr> , ... ] ;  ## (opt) link attribute values
+        [ <path-attr> , ... ] ;  ## (opt) path attribute values
+    }
+
+<attr-def-id> == <int>
+
+<attr-type> == <base-type>
+<attr-type> == list <base-type>
+
+<base-type> == bool
+<base-type> == int
+<base-type> == float
+<base-type> == double
+<base-type> == string
+<base-type> == float3
+<base-type> == double3
+<base-type> == enum <enum-def-id>
+
+<attr-def-value> == <value>  ## NOTE: not yet supported
+<attr-def-value> == <code>
+
+<node-attr> ==
+    {
+        <node-id> ;
+        <value> ;
+    }
+
+<link-attr> ==
+    {
+        <link-id> ;
+        <value> ;
+    }
+
+<path-attr> ==
+    {
+        <path-id> ;
+        <value> ;
+    }
+
+<qualifier> ==
+    { 
+        <ident> ;   ## type (need not be unique)
+        <ident> ;   ## name (unique over all qualifier names)
+        <string> ;  ## (opt) description
+        [ <qualifier-attr> , ... ] ;  ## (opt) constituent attributes
+    }
+
+<qualifier-attr> ==
+    {
+        <attr-def-id> ;
+        <ident> ;   ## alias, which may differ from the name of the attribute
+                    ##   (unique in a qualifier)
+    }
+
+<filter> ==
+    {
+        <string> ;     ## name (need not be unique)
+        <code> ;       ## criterion
+    }
+
+<filter-id> == <int>
+
+<selector> ==
+    {
+        <string> ;                      ## name (need not be unique)
+        [ <selector-mapping> , ... ] ;  ## mappings
+    }
+
+<selector-id> == <int>
+
+<selector-mapping> ==
+    {
+        <filter-id> ;  ## source filter
+        <string> ;     ## display characteristic ("show", "color", "size", ...)
+                       ##   (unique in a given selector)
+        <bool> ;       ## whether mapping applies to nodes
+        <bool> ;       ## whether mapping applies to links
+        <bool> ;       ## whether mapping applies to paths
+    }
+
+<display> ==
+    {
+        <string> ;                     ## name (need not be unique)
+        [ <display-mapping> , ... ] ;  ## mappings
+    }
+
+<display-id> == <int>
+
+<display-mapping> ==
+    {
+        <attr-def-id> ;  ## source attribute
+        <string> ;       ## display characteristic ("color", "size", ...)
+                         ##   (unique in a given selector)
+        <bool> ;         ## whether mapping applies to nodes
+        <bool> ;         ## whether mapping applies to links
+        <bool> ;         ## whether mapping applies to paths
+    }
+
+<presentation> ==
+    {
+        <string> ;           ## name (need not be unique)
+        <display-id> ;       ## display
+        <selector-id> ;      ## (opt) selector [NOTE: required in current impl]
+    }
+
+<presentation-id> == <int>
+
+*****************************************************************************
+*** NOTE: In the following productions for menus, if a menu has submenus,
+***       then it should not have an object reference (ID).
+*****************************************************************************
+
+<presentation-menu> ==
+    {
+        <string> ;                       ## label (need not be unique)
+        <presentation-id> ;              ## (opt) presentation
+        [ <presentation-menu> , ... ] ;  ## (opt) submenus
+    }
+
+<display-menu> ==
+    {
+        <string> ;                       ## label (need not be unique)
+        <display-id> ;                   ## (opt) display
+        [ <display-menu> , ... ] ;       ## (opt) submenus
+    }
+
+<selector-menu> ==
+    {
+        <string> ;                       ## label (need not be unique)
+        <selector-id> ;                  ## (opt) selector
+        [ <selector-menu> , ... ] ;      ## (opt) submenus
+    }
+
+<filter-menu> ==
+    {
+        <string> ;                       ## label (need not be unique)
+        <filter-id> ;                    ## (opt) filter
+        [ <filter-menu> , ... ] ;        ## (opt) submenus
+    }
+
+<attribute-menu> ==
+    {
+        <string> ;                       ## label (need not be unique)
+        <attribute-id> ;                 ## (opt) attribute
+        [ <attribute-menu> , ... ] ;     ## (opt) submenus
+    }
+
+<value> == <scalar-value>
+<value> == <list-value>
+
+<list-value> == [ <scalar-value> , ... ]  ## NOTE: No lists of lists allowed.
+
+<scalar-value> == <bool>
+<scalar-value> == <int>
+<scalar-value> == <float>
+<scalar-value> == <double>
+<scalar-value> == <string>
+<scalar-value> == <float3>
+<scalar-value> == <double3>
+<scalar-value> == enum <enumerator-id>
+
+<float3> ==
+    {
+        <float> ;
+        <float> ;
+        <float> ;
+    }
+
+<double3> ==
+    {
+        <double> ;
+        <double> ;
+        <double> ;
+    }
+---------------------------------------------------------------------------

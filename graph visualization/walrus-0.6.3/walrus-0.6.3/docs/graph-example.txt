@@ -1,0 +1,592 @@
+EXAMPLES OF GRAPHS IN THE PROPOSED ASCII FILE FORMAT
+
+Last revised May 16, 2001
+
+============================================================================
+Ex 1. Minimal Graph File
+----------------------------------------------------------------------------
+Graph
+{
+    "Minimal Graph"; ;  ## name & description
+    0; 0; 0; 0;         ## #nodes, #links, #paths, and #path links
+    ; ;                 ## link & path lists
+    ; ; ;               ## enum-def, attr-def, qualifer lists
+    ; ; ; ;             ## visualization hints
+    ; ; ; ; ;           ## interface hints
+}
+----------------------------------------------------------------------------
+Graph
+{
+   ### metadata ###
+   @name="Minimal Graph";
+   @description=;
+   @numNodes=0;
+   @numLinks=0;
+   @numPaths=0;
+   @numPathLinks=0;
+
+   ### structural data ###
+   @links=;
+   @paths=;
+
+   ### attribute data ###
+   @enumerations=;
+   @attributeDefinitions=;
+   @qualifiers=;
+
+   ### visualization hints ###
+   @filters=;
+   @selectors=;
+   @displays=;
+   @presentations=;
+
+   ### interface hints ###
+   @presentationMenus=;
+   @displayMenus=;
+   @selectorMenus=;
+   @filterMenus=;
+   @attributeMenus=;
+}
+
+============================================================================
+Ex 2. Complete Binary Tree of Height 2, Minimal
+----------------------------------------------------------------------------
+Graph
+{
+    "Binary Tree";      ## name
+    "A complete binary tree of height 2.";  ## description
+    7; 6; 0; 0;         ## #nodes, #links, #paths, and #path links
+    [                   ## link list
+        {
+            0;          ## source (node-id)
+            1;          ## destination (node-id)
+        },
+        { 0; 2; },
+        { 1; 3; },
+        { 1; 4; },
+        { 2; 5; },
+        { 2; 6; } 
+    ];
+    ;                   ## path list
+    ; ; ;               ## enum-def, attr-def, qualifer lists
+    ; ; ; ;             ## visualization hints
+    ; ; ; ; ;           ## interface hints
+}
+----------------------------------------------------------------------------
+Graph
+{
+   ### metadata ###
+   @name="Binary Tree";
+   @description="A complete binary tree of height 2.";
+   @numNodes=7;
+   @numLinks=6;
+   @numPaths=0;
+   @numPathLinks=0;
+
+   ### structural data ###
+   @links=[
+      { @source=0; @destination=1; },
+      { @source=0; @destination=2; },
+      { @source=1; @destination=3; },
+      { @source=1; @destination=4; },
+      { @source=2; @destination=5; },
+      { @source=2; @destination=6; }
+   ];
+   @paths=;
+
+   ### attribute data ###
+   @enumerations=;
+   @attributeDefinitions=;
+   @qualifiers=;
+
+   ### visualization hints ###
+   @filters=;
+   @selectors=;
+   @displays=;
+   @presentations=;
+
+   ### interface hints ###
+   @presentationMenus=;
+   @displayMenus=;
+   @selectorMenus=;
+   @filterMenus=;
+   @attributeMenus=;
+}
+
+============================================================================
+Ex 3. Complete Binary Tree of Height 2, Typical
+----------------------------------------------------------------------------
+Graph
+{
+   ### metadata ###
+    "Qualified Binary Tree";   ## name
+    "A complete binary tree of height 2.";  ## description
+    7; 6; 2; 4;                ## #nodes, #links, #paths, and #path links
+
+   ### structural data ###
+    [                          ## link list
+        {
+            0;                 ## source (node-id)
+            1;                 ## destination (node-id)
+        },
+        { 0; 2; },
+        { 1; 3; },
+        { 1; 4; },
+        { 2; 5; },
+        { 2; 6; }
+    ];
+    [                          ## path list
+        { [ 0, 2 ]; },         ## components (link-id)
+        { [ 1, 4 ]; }
+    ];
+
+   ### attribute data ###
+    [                          ## enumeration definition list
+        {
+            $link_speed;       ## name
+            [                  ## enumerator list
+                {
+                    $UNKNOWN;  ## name
+                    0;         ## value
+                },
+                { $OC3; 1; },
+                { $OC12; 2; },
+                { $OC48; 3; }
+            ];
+        }
+    ];
+    [                          ## attribute definition list
+        {
+            $root;             ## name
+            bool;              ## type
+            ;                  ## default value
+            [                  ## node attribute mapping list
+                {
+                    0;         ## node
+                    T;         ## value
+                }
+            ];
+            ;                  ## link attribute mapping list
+            ;                  ## path attribute mapping list
+        },
+        {
+            $link;
+            bool;
+            ;
+            ;
+            [
+                { 0; T; },
+                { 2; T; },
+                { 3; T; }
+            ];
+            ;
+        },
+        {
+            $root2;
+            bool;
+            ;
+            [
+                { 0; T; }
+            ];
+            ;
+            ;
+        },
+        {
+            $label;
+            string;
+            ||-none-||;
+            [
+               { 0; "Root"; },
+               { 1; "Node A"; },
+               { 2; "Node B"; }
+            ];
+            [
+               { 0; "Link A"; },
+               { 1; "Link B"; }
+            ];
+            [
+               { 0; "Path A"; },
+               { 1; "Path B"; }
+            ];
+        },
+        {
+            $bytes;
+            int;
+            ||0||;
+            [
+               { 0; 122; },
+               { 1; 5; },
+               { 2; 255; }
+            ];
+            [
+               { 0; 127; },
+               { 1; 260; }
+            ];
+            ;
+        },
+        {
+            $log_bytes;
+            float;
+            ||if $bytes > 1 then log($bytes) else 0.0||;
+            ;
+            ;
+            ;
+        },
+        {
+            $speed;
+            enum 0;
+            ||#link_speed:UNKNOWN||;
+            ;
+            [
+                { 0; enum 1; },
+                { 3; enum 2; },
+                { 5; enum 1; }
+            ];
+            ;
+        },
+        {
+            $color;
+            float3;
+            ;
+            [
+                { 0; { 0.0f; 0.0f; 0.0f; }; },
+                { 1; { 0.5f; 0.6f; 0.7f; }; },
+                { 2; { 1.0f; 0.9f; 0.8f; }; },
+                { 3; { 0.1f; 0.2f; 0.3f; }; },
+                { 4; { 0.4f; 0.5f; 0.6f; }; },
+                { 5; { 0.7f; 0.8f; 0.9f; }; },
+                { 6; { 0.3f; 0.3f; 0.3f; }; }
+            ];
+            ;
+            ;
+        }
+    ];
+    [                          ## qualifier list
+        {
+            $tree;             ## type
+            $left_tree;        ## name
+            "Left subtree.";   ## description
+            [                  ## qualifier attributes list
+                {
+                    0;         ## attribute
+                    $root;     ## alias
+                },
+                { 1; $left_tree_link; },
+                { 7; $left_tree_color; }
+            ];
+        }
+    ];
+
+   ### visualization hints ###
+    [                          ## filter list
+         {
+             "HighBytes";      ## name
+             ||$bytes > 100000||;  ## expr
+         }
+    ];
+    [                          ## selector list
+         {
+             "HighBytes";      ## name
+             [                 ## selector mapping list
+                 {
+                     0;        ## filter
+                     "show";   ## display characteristic
+                     T;        ## whether this applies to nodes
+                     F;        ## whether this applies to links
+                     F;        ## whether this applies to paths
+                 },
+                 { 0; "size"; F; T; T; }
+             ];
+         }
+    ];
+    [                          ## display list
+         {
+             "Bytes";          ## name
+             [
+                 {
+                     7;        ## source attribute
+                     "color";  ## display characteristic
+                     T;        ## whether this applies to nodes
+                     F;        ## whether this applies to links
+                     F;        ## whether this applies to paths
+                 },
+                 { 4; "size"; F; T; T; }
+             ];
+         },
+         {
+             "LogBytes";
+             [
+                 { 7; "color"; T; F; F; },
+                 { 5; "size"; T; F; T; }
+             ];
+         }
+    ];
+    [                          ## presentation list
+         {
+             "Bytes";          ## name
+              0;               ## display
+              0;               ## selector
+         },
+         { "LogBytes"; 1; 0; }
+    ];
+
+   ### interface hints ###
+   [                              ## presentation menu list
+       {
+           "Bytes Presentation";  ## label
+            0;                    ## presentation
+            ;                     ## submenus
+       },
+       {
+            "Log Bytes Presentation";
+            0;
+            ;
+       }
+   ];
+   [                              ## display menu list
+       {
+            "Bytes Display";      ## label
+            0;                    ## display
+            ;                     ## submenus
+       },
+       {
+            "Log Bytes Display";
+            1;
+            ;
+       }
+   ];
+   [                              ## selector menu list
+       {
+            "High Bytes Selector";  ## label
+            0;                    ## selector
+            ;                     ## submenus
+       }
+   ];
+   [                              ## filter menu list
+       {
+            "High Bytes Filter";  ## label
+            0;                    ## filter
+            ;                     ## submenus
+       }
+   ];
+   ;                              ## attribute menu list
+}
+----------------------------------------------------------------------------
+Graph
+{
+   ### metadata ###
+   @name="Qualified Binary Tree";
+   @description="A complete binary tree of height 2.";
+   @numNodes=7;
+   @numLinks=6;
+   @numPaths=2;
+   @numPathLinks=4;
+
+   ### structural data ###
+   @links=[
+      { @source=0; @destination=1; },
+      { @source=0; @destination=2; },
+      { @source=1; @destination=3; },
+      { @source=1; @destination=4; },
+      { @source=2; @destination=5; },
+      { @source=2; @destination=6; }
+   ];
+   @paths=[
+      { @pathLinks=[ 0, 2 ]; },
+      { @pathLinks=[ 1, 4 ]; }
+   ];
+
+   ### attribute data ###
+   @enumerations=[
+      {
+         @name=$link_speed;
+         @enumerators=[ { @name=$UNKNOWN; @value=0; }, { @name=$OC3; @value=1; }, { @name=$OC12; @value=2; }, { @name=$OC48; @value=3; } ];
+      }
+   ];
+   @attributeDefinitions=[
+      {
+         @name=$root;
+         @type=bool;
+         @default=;
+         @nodeValues=[
+            { @id=0; @value=T; }
+         ];
+         @linkValues=;
+         @pathValues=;
+      },
+      {
+         @name=$link;
+         @type=bool;
+         @default=;
+         @nodeValues=;
+         @linkValues=[
+            { @id=0; @value=T; },
+            { @id=2; @value=T; },
+            { @id=3; @value=T; }
+         ];
+         @pathValues=;
+      },
+      {
+         @name=$root2;
+         @type=bool;
+         @default=;
+         @nodeValues=[
+            { @id=0; @value=T; }
+         ];
+         @linkValues=;
+         @pathValues=;
+      },
+      {
+         @name=$label;
+         @type=string;
+         @default=||-none-||;
+         @nodeValues=[
+            { @id=0; @value="Root"; },
+            { @id=1; @value="Node A"; },
+            { @id=2; @value="Node B"; }
+         ];
+         @linkValues=[
+            { @id=0; @value="Link A"; },
+            { @id=1; @value="Link B"; }
+         ];
+         @pathValues=[
+            { @id=0; @value="Path A"; },
+            { @id=1; @value="Path B"; }
+         ];
+      },
+      {
+         @name=$bytes;
+         @type=int;
+         @default=||0||;
+         @nodeValues=[
+            { @id=0; @value=122; },
+            { @id=1; @value=5; },
+            { @id=2; @value=255; }
+         ];
+         @linkValues=[
+            { @id=0; @value=127; },
+            { @id=1; @value=260; }
+         ];
+         @pathValues=;
+      },
+      {
+         @name=$log_bytes;
+         @type=float;
+         @default=||if $bytes > 1 then log($bytes) else 0.0||;
+         @nodeValues=;
+         @linkValues=;
+         @pathValues=;
+      },
+      {
+         @name=$speed;
+         @type=enum 0;
+         @default=||#link_speed:UNKNOWN||;
+         @nodeValues=;
+         @linkValues=[
+            { @id=0; @value=enum 1; },
+            { @id=3; @value=enum 2; },
+            { @id=5; @value=enum 1; }
+         ];
+         @pathValues=;
+      },
+      {
+         @name=$color;
+         @type=float3;
+         @default=;
+         @nodeValues=[
+            { @id=0; @value={ 0.0f; 0.0f; 0.0f; }; },
+            { @id=1; @value={ 0.5f; 0.6f; 0.7f; }; },
+            { @id=2; @value={ 1.0f; 0.9f; 0.8f; }; },
+            { @id=3; @value={ 0.1f; 0.2f; 0.3f; }; },
+            { @id=4; @value={ 0.4f; 0.5f; 0.6f; }; },
+            { @id=5; @value={ 0.7f; 0.8f; 0.9f; }; },
+            { @id=6; @value={ 0.3f; 0.3f; 0.3f; }; }
+         ];
+         @linkValues=;
+         @pathValues=;
+      }
+   ];
+   @qualifiers=[
+      {
+         @type=$tree;
+         @name=$left_tree;
+         @description="Left subtree.";
+         @attributes=[ { @attribute=0; @alias=$root; }, { @attribute=1; @alias=$left_tree_link; }, { @attribute=7; @alias=$left_tree_color; } ];
+      }
+   ];
+
+   ### visualization hints ###
+   @filters=[
+      { @name="HighBytes"; @expr=||$bytes > 100000||; }
+   ];
+   @selectors=[
+      {
+         @name="HighBytes";
+         @mappings=[
+            { @filter=0; @characteristic="show"; @node=T; @link=F; @path=F; },
+            { @filter=0; @characteristic="size"; @node=F; @link=T; @path=T; }
+         ];
+      }
+   ];
+   @displays=[
+      {
+         @name="Bytes";
+         @mappings=[
+            { @attribute=7; @characteristic="color"; @node=T; @link=F; @path=F; },
+            { @attribute=4; @characteristic="size"; @node=F; @link=T; @path=T; }
+         ];
+      },
+      {
+         @name="LogBytes";
+         @mappings=[
+            { @attribute=7; @characteristic="color"; @node=T; @link=F; @path=F; },
+            { @attribute=5; @characteristic="size"; @node=T; @link=F; @path=T; }
+         ];
+      }
+   ];
+   @presentations=[
+      { @name="Bytes"; @display=0; @selector=0; },
+      { @name="LogBytes"; @display=1; @selector=0; }
+   ];
+
+   ### interface hints ###
+   @presentationMenus=[
+      {
+         @label="Bytes Presentation";
+         @id=0;
+         @submenus=;
+      },
+      {
+         @label="Log Bytes Presentation";
+         @id=0;
+         @submenus=;
+      }
+   ];
+   @displayMenus=[
+      {
+         @label="Bytes Display";
+         @id=0;
+         @submenus=;
+      },
+      {
+         @label="Log Bytes Display";
+         @id=1;
+         @submenus=;
+      }
+   ];
+   @selectorMenus=[
+      {
+         @label="High Bytes Selector";
+         @id=0;
+         @submenus=;
+      }
+   ];
+   @filterMenus=[
+      {
+         @label="High Bytes Filter";
+         @id=0;
+         @submenus=;
+      }
+   ];
+   @attributeMenus=;
+}

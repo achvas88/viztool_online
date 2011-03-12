@@ -1,0 +1,52 @@
+#!/usr/local/bin/bash
+
+#-----------------------------------------------------------------------------
+# Feed a list of filenames, one per line, to this.  For example,
+#
+#    find / -print | ./showlinks
+#
+# This outputs lines of the following form:
+#
+#    <type> <source-id> <dest-id>
+#
+# where <type> is either the character 'l' or 't', the former signifying
+#              a nontree link, and the the latter a tree link,
+#       <source-id> is a unique string identifying the file at the source
+#              of a link,
+#   and <dest-id> is a unique string identifying the file at the destination
+#              of a link.
+#
+#-----------------------------------------------------------------------------
+
+function fileid()
+{
+   perl -e 'my ($dev,$ino) = stat $ARGV[0]; print "$dev:$ino\n";' "$1"
+}
+
+function lfileid()
+{
+   perl -e 'my ($dev,$ino) = lstat $ARGV[0]; print "$dev:$ino\n";' "$1"
+}
+
+while read FILE
+do
+   if test -L "$FILE"
+   then
+      if ls -L "$FILE" >/dev/null 2>&1
+      then
+         LINK_ID=`lfileid "$FILE"`
+         TARGET_ID=`fileid "$FILE"`
+         echo "l $LINK_ID $TARGET_ID" | tr ' ' '\t'
+      fi
+   elif test -d "$FILE"
+   then
+      DIR_ID=`fileid "$FILE"`
+      # NOTE: for F in `ls ...` fails on files with spaces
+      ls -A "$FILE" | while read F
+      do
+         TARGET_ID=`lfileid "$FILE/$F"`
+         echo "t $DIR_ID $TARGET_ID" | tr ' ' '\t'
+      done
+   fi
+done
+

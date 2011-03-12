@@ -1,0 +1,439 @@
+#!/usr/local/bin/perl -w
+
+use strict;
+
+if ($#ARGV != 1)
+{
+  die "Usage: mkgraph <nodes-file> <links-file>\n";
+}
+
+my ($id_mapping, $mtime, $perm, $uid, $gid,
+    $size, $date, $base_name, $full_name) = load_nodes($ARGV[0]);
+
+my ($type, $source, $dest) = load_links($id_mapping, $ARGV[1]);
+
+my $num_nodes = $#$perm + 1;
+my $num_links = $#$type + 1;
+
+my $root_node = 0;
+my $root_attribute = 0;
+my $tree_link_attribute = 1;
+
+print "Graph\n";
+print "{\n";
+print "   \@name=\"Directory Tree\";\n";
+print "   \@description=\"A graph generated from a directory tree.\";\n";
+print "   \@numNodes=$num_nodes;\n";
+print "   \@numLinks=$num_links;\n";
+print "   \@numPaths=0;\n";
+print "   \@numPathLinks=0;\n";
+print_links($source, $dest);
+print "   \@paths=;\n";
+print "   \@enumerations=;\n";
+print "   \@attributeDefinitions=[\n";
+print_root_attribute("root", $root_node);
+print ",\n";
+print_tree_link_attribute("tree_link", $type);
+print ",\n";
+print_node_int_attribute("mtime", $mtime);
+print ",\n";
+print_node_string_attribute("perm", $perm);
+print ",\n";
+print_node_string_attribute("uid", $uid);
+print ",\n";
+print_node_string_attribute("gid", $gid);
+print ",\n";
+print_node_int_attribute("size", $size);
+print ",\n";
+print_node_string_attribute("date", $date);
+print ",\n";
+print_node_string_attribute("base_name", $base_name);
+print ",\n";
+print_node_string_attribute("full_name", $full_name);
+print ",\n";
+print_size_class_color_attribute("size_class_color", $size);
+print ",\n";
+print_mtime_color_attribute("mtime_color", $mtime);
+print "\n";
+print "   ];\n";
+print "   \@qualifiers=[\n";
+print_spanning_tree_qualifier("default_spanning_tree",
+			      $root_attribute, $tree_link_attribute);
+print "\n";
+print "   ];\n";
+print "   \@filters=;\n";
+print "   \@selectors=;\n";
+print "   \@displays=;\n";
+print "   \@presentations=;\n";
+print "   \@presentationMenus=;\n";
+print "   \@displayMenus=;\n";
+print "   \@selectorMenus=;\n";
+print "   \@filterMenus=;\n";
+print "   \@attributeMenus=;\n";
+print "}\n";
+
+############################################################################
+
+sub print_links
+{
+  my ($source, $dest) = @_;
+
+  print "   \@links=[\n";
+
+  my $num_links = $#$source + 1;
+  for (my $i = 0; $i < $num_links; $i++)
+  {
+    my $source_id = $source->[$i];
+    my $dest_id = $dest->[$i];
+    print(",\n") if $i > 0;
+    print "      { \@source=$source_id; \@destination=$dest_id; }";
+  }
+
+  print "\n";
+  print "   ];\n";
+}
+
+############################################################################
+
+sub print_root_attribute
+{
+  my ($name, $root_node) = @_;
+
+  print "      {\n";
+  print "         \@name=\$$name;\n";
+  print "         \@type=bool;\n";
+  print "         \@default=|| false ||;\n";
+  print "         \@nodeValues=[ { \@id=$root_node; \@value=T; } ];\n";
+  print "         \@linkValues=;\n";
+  print "         \@pathValues=;\n";
+  print "      }";
+}
+
+############################################################################
+
+sub print_tree_link_attribute
+{
+  my ($name, $type) = @_;
+
+  print "      {\n";
+  print "         \@name=\$$name;\n";
+  print "         \@type=bool;\n";
+  print "         \@default=|| false ||;\n";
+  print "         \@nodeValues=;\n";
+  print "         \@linkValues=[\n";
+
+  my $num_links = $#$type + 1;
+  my $num_tree_links = 0;
+  for (my $i = 0; $i < $num_links; $i++)
+  {
+    if ($type->[$i] eq "t")
+    {
+      print ",\n" if $num_tree_links > 0;
+      print "            { \@id=$i; \@value=T; }";
+      ++$num_tree_links;
+    }
+  }
+  print "\n" if $num_tree_links > 0;
+  print "         ];\n";
+
+  print "         \@pathValues=;\n";
+  print "      }";
+}
+
+############################################################################
+
+sub print_node_string_attribute
+{
+  my ($name, $array) = @_;
+  my $printer = sub {
+    my ($s) = @_;
+    $s =~ s/\\/\\\\/g;
+    $s =~ s/\"/\\\"/g;
+    print "\"$s\"";
+  };
+  print_node_attribute($name, "string", $array, $printer);
+}
+
+sub print_node_int_attribute
+{
+  my ($name, $array) = @_;
+  my $printer = sub { my ($n) = @_; print "$n"; };
+  print_node_attribute($name, "int", $array, $printer);
+}
+
+sub print_node_attribute
+{
+  my ($name, $type, $array, $printer) = @_;
+
+  print "      {\n";
+  print "         \@name=\$$name;\n";
+  print "         \@type=$type;\n";
+  print "         \@default=;\n";
+  print "         \@nodeValues=[\n";
+
+  my $num_nodes = $#$array + 1;
+  for (my $i = 0; $i < $num_nodes; $i++)
+  {
+    print ",\n" if $i > 0;
+    print "            { \@id=$i; \@value=";
+    &$printer($array->[$i]);
+    print "; }";
+  }
+  print "\n" if $num_nodes > 0;
+  print "         ];\n";
+
+  print "         \@linkValues=;\n";
+  print "         \@pathValues=;\n";
+  print "      }";
+}
+
+############################################################################
+
+sub print_size_class_color_attribute
+{
+  my ($name, $size) = @_;
+  my @color;
+
+  my $color_eq_0 = compute_integer_hot_to_cold(0.0);
+  my $color_lt_1k = compute_integer_hot_to_cold(1.0 / 6.0);
+  my $color_lt_10k = compute_integer_hot_to_cold(2.0 / 6.0);
+  my $color_lt_100k = compute_integer_hot_to_cold(3.0 / 6.0);
+  my $color_lt_1M = compute_integer_hot_to_cold(4.0 / 6.0);
+  my $color_lt_10M = compute_integer_hot_to_cold(5.0 / 6.0);
+  my $color_ge_10M = compute_integer_hot_to_cold(1.0);
+
+  my $length = $#$size + 1;
+  for (my $i = 0; $i < $length; $i++)
+  {
+    my $s = $size->[$i];
+    if ($s >= 10 * 1024 * 1024)
+    {
+      push @color, $color_ge_10M;
+    }
+    elsif ($s >= 1024 * 1024)
+    {
+      push @color, $color_lt_10M;
+    }
+    elsif ($s >= 100 * 1024)
+    {
+      push @color, $color_lt_1M;
+    }
+    elsif ($s >= 10 * 1024)
+    {
+      push @color, $color_lt_100k;
+    }
+    elsif ($s >= 1024)
+    {
+      push @color, $color_lt_10k;
+    }
+    elsif ($s > 0)
+    {
+      push @color, $color_lt_1k;
+    }
+    else
+    {
+      push @color, $color_eq_0;
+    }
+  }
+
+  print_node_int_attribute($name, \@color);
+}
+
+############################################################################
+
+sub print_mtime_color_attribute
+{
+  my ($name, $mtime) = @_;
+  my @color;
+
+  #-------------------------------------------------------------------------
+  # XXX: The code below doesn't quite work as described, but it works
+  #      well enough for demonstration purposes.
+  #-------------------------------------------------------------------------
+
+  # This scale value determines the time frame that will be rendered in
+  # the color range [0.1, 1.0].  That is, a modification time older than
+  # this value will have a color value less than 0.1, whereas a modification
+  # time that is newer will have a color value between 0.1 and 1.0.  Hence,
+  # this value specifies the time frame of the recent past that should be
+  # displayed most prominently.
+  #
+  # The mapping of file age (the difference between the current time
+  # and the modification time) to the range [0.0, 1.0] is done by a
+  # variant of the function f(x) = 1/(1 + x), where x is file age.
+  # This emphasizes differences in age of recently changed files while
+  # blurring such distinctions for older files.
+
+  my $scale = 60 * 60 * 24 * 30; # one month
+
+  my $now = time();
+
+  my $length = $#$mtime + 1;
+  for (my $i = 0; $i < $length; $i++)
+  {
+    my $m = $mtime->[$i];
+    my $t = $now - $m;
+    if ($t < 0)
+    {
+      $t = 0;
+    }
+
+    my $y = 1.0 / (1.0 + $t / $scale);
+    push @color, compute_integer_hot_to_cold($y);
+  }
+
+  print_node_int_attribute($name, \@color);
+}
+
+############################################################################
+
+sub print_spanning_tree_qualifier
+{
+  my ($name, $root_attribute, $tree_link_attribute) = @_;
+
+  print "      {\n";
+  print "         \@type=\$spanning_tree;\n";
+  print "         \@name=\$$name;\n";
+  print "         \@description=;\n";
+  print "         \@attributes=[\n";
+  print "            { \@attribute=$root_attribute; \@alias=\$root; },\n";
+  print "            { \@attribute=$tree_link_attribute; \@alias=\$tree_link; }\n";
+  print "         ];\n";
+  print "      }";
+}
+
+############################################################################
+
+sub load_links
+{
+  my ($id_mapping, $file) = @_;
+  my @type;
+  my @source;
+  my @dest;
+
+  open LINKS, $file or die "Error opening links file \"$file\".\n";
+  while (<LINKS>)
+  {
+    chomp;
+    if ((my ($t, $s, $d) = split /\t/) == 3)
+    {
+      if ($t =~ /^(t|l)$/)
+      {
+	my $source_id = $id_mapping->{$s};
+	my $dest_id = $id_mapping->{$d};
+	if (defined $source_id and defined $dest_id)
+	{
+	  push @type, $t;
+	  push @source, $source_id;
+	  push @dest, $dest_id;
+	}
+	else
+	{
+	  if (not defined $source_id)
+	  {
+	    warn "Line $.: link source $s not found; skipping.\n";
+	  }
+
+	  if (not defined $dest_id)
+	  {
+	    warn "Line $.: link destination $d not found; skipping.\n";
+	  }
+	}
+
+	next;
+      }
+    }
+
+    die  "ERROR: Line $. of $file is malformed.\n";
+  }
+  close LINKS;
+  return (\@type, \@source, \@dest);
+}
+
+############################################################################
+
+sub load_nodes
+{
+  my ($file) = @_;
+  my %id_mapping;
+  my @mtime;
+  my @perm;
+  my @uid;
+  my @gid;
+  my @size;
+  my @date;
+  my @base_name;
+  my @full_name;
+
+  my $i = 0;
+  open NODES, $file or die "Error opening nodes file \"$file\".\n";
+  while (<NODES>)
+  {
+    chomp;
+    if ((my ($n, $m, $p, $u, $g, $s, $d, $b,$f) = split /\t/) == 9)
+    {
+      $id_mapping{$n} = $i++;
+      push @mtime, $m;
+      push @perm, $p;
+      push @uid, $u;
+      push @gid, $g;
+      push @size, $s;
+      push @date, $d;
+      push @base_name, $b;
+      push @full_name, $f;
+      next;
+    }
+
+    die  "ERROR: Line $. of $file is malformed.\n";
+  }
+  close NODES;
+  return (\%id_mapping, \@mtime, \@perm, \@uid, \@gid, \@size,
+	  \@date, \@base_name, \@full_name);
+}
+
+############################################################################
+
+# Code adapted from
+# <http://www.swin.edu.au/astronomy/pbourke/colour/colourramp>,
+# "Colour Ramping for Data Visualization", by Paul Bourke, July 1996.
+
+sub compute_integer_hot_to_cold
+{
+  my ($x) = @_;
+  my $r = 255;
+  my $g = 255;
+  my $b = 255;
+
+  if ($x < 0.0)
+  {
+    $x = 0.0;
+  }
+  elsif ($x > 1.0)
+  {
+    $x = 1.0;
+  }
+
+  if ($x < 0.25)
+  {
+    $r = 0;
+    $g = int(255.0 * 4.0 * $x);
+  }
+  elsif ($x < 0.5)
+  {
+    $r = 0;
+    $b = int(255.0 + 255.0 * 4.0 * (0.25 - $x));
+  }
+  elsif ($x < 0.75)
+  {
+    $r = int(255.0 * 4.0 * ($x - 0.5));
+    $b = 0;
+  }
+  else
+  {
+    $g = int(255.0 + 255.0 * 4.0 * (0.75 - $x));
+    $b = 0;
+  }
+
+  return ($r << 16) | ($g << 8) | $b;
+}
+

@@ -1,0 +1,17 @@
+#!/usr/local/bin/bash
+
+function lfileid()
+{
+   perl -e 'my ($dev,$ino,$m,$n,$u,$g,$rdev,$size,$a,$mtime) = lstat $ARGV[0]; print "$dev:$ino $mtime\n";' "$1"
+}
+
+while read FILE
+do
+   if test -e "$FILE"
+   then
+       ID=`lfileid "$FILE"`
+       echo -n "$ID "
+       /bin/ls -ld "$FILE"
+   fi
+done
+

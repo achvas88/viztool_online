@@ -1,0 +1,5 @@
+use test;
+#select * from `fns_human`;
+#select count(*) from `fns_human` where GO_TERM="" OR GENE="";
+#select t1.GO_TERM,t1.FUNCTION,t2.FUNCTION from (`fns_human` AS t1,`fns_human` AS t2) where t1.GO_TERM = t2.GO_TERM AND t1.FUNCTION != t2.FUNCTION AND t1.idfunctions_human!=t2.idfunctions_human;
+#select count(DISTINCT(t1.GO_TERM)) from (`fns_human` AS t1,`fns_human` AS t2) where t1.GO_TERM = t2.GO_TERM AND t1.FUNCTION != t2.FUNCTION AND t1.idfunctions_human!=t2.idfunctions_human;
