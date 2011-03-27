@@ -1,0 +1,298 @@
+<!DOCTYPE HTML>
+<html>
+
+
+
+<head>
+<style type="text/css">
+	#omw_scrollpane
+	{
+		width:600px;
+		height:600px;
+		overflow:auto;
+		border: solid 1px #000;
+		background-color:white;
+		position:absolute;
+		top:0px;
+		left:0px;
+	}
+	
+	
+</style> 
+
+<!---->
+
+<script language="javascript" type="text/javascript" src="jquery-1.5.js"></script> 
+
+<script language="javascript" type="text/javascript" src="degreeBasedRadialSortGraph.js"></script> 
+
+<script>
+
+ var canvas2;
+ var isDown = false;
+ var startX,startY,endX,endY;
+ 
+ function handleMouseDown(evt)
+ {
+	if(!evt.ctrlKey)
+	{
+		handleDeselection();	
+	}
+	
+	var scrollbar = document.getElementById("omw_scrollpane");
+	
+	isDown = true;
+	startX = scrollbar.scrollLeft + evt.clientX;
+	startY = scrollbar.scrollTop + evt.clientY;
+ }
+ 
+ function handleMouseUp(evt)
+ {
+ 	var scrollbar = document.getElementById("omw_scrollpane");
+	
+	var ctx = canvas2.getContext("2d");
+	endX = scrollbar.scrollLeft + evt.clientX;
+	endY = scrollbar.scrollTop + evt.clientY;
+	isDown = false;
+	handleSelection(startX,startY,endX,endY);
+ }
+ 
+
+ function handleMouseMove(evt)
+ {	
+	var scrollbar = document.getElementById("omw_scrollpane");
+	
+ 	var ctx = canvas2.getContext("2d");
+	ctx.clearRect(0,0,canvas2.width,canvas2.height);
+		
+	if(isDown)
+	{
+		ctx.strokeStyle = "rgba(50,50,50,0.4)";
+		ctx.lineWidth = 1;
+		ctx.beginPath();
+		ctx.moveTo(startX,startY);
+		ctx.lineTo(scrollbar.scrollLeft + evt.clientX,startY);
+		ctx.lineTo(scrollbar.scrollLeft + evt.clientX,scrollbar.scrollTop +evt.clientY);
+		ctx.lineTo(startX,scrollbar.scrollTop +evt.clientY);
+		ctx.closePath();
+		ctx.stroke();
+	}
+		
+ }
+ 
+ CanvasRenderingContext2D.prototype.dashedLineTo = function (fromX, fromY, toX, toY, pattern) {
+  // Our growth rate for our line can be one of the following:
+  //   (+,+), (+,-), (-,+), (-,-)
+  // Because of this, our algorithm needs to understand if the x-coord and
+  // y-coord should be getting smaller or larger and properly cap the values
+  // based on (x,y).
+  var lt = function (a, b) { return a <= b; };
+  var gt = function (a, b) { return a >= b; };
+  var capmin = function (a, b) { return Math.min(a, b); };
+  var capmax = function (a, b) { return Math.max(a, b); };
+
+  var checkX = { thereYet: gt, cap: capmin };
+  var checkY = { thereYet: gt, cap: capmin };
+
+  if (fromY - toY > 0) {
+    checkY.thereYet = lt;
+    checkY.cap = capmax;
+  }
+  if (fromX - toX > 0) {
+    checkX.thereYet = lt;
+    checkX.cap = capmax;
+  }
+
+  this.moveTo(fromX, fromY);
+  var offsetX = fromX;
+  var offsetY = fromY;
+  var idx = 0, dash = true;
+  while (!(checkX.thereYet(offsetX, toX) && checkY.thereYet(offsetY, toY))) {
+    var ang = Math.atan2(toY - fromY, toX - fromX);
+    var len = pattern[idx];
+
+    offsetX = checkX.cap(toX, offsetX + (Math.cos(ang) * len));
+    offsetY = checkY.cap(toY, offsetY + (Math.sin(ang) * len));
+
+    if (dash) this.lineTo(offsetX, offsetY);
+    else this.moveTo(offsetX, offsetY);
+
+    idx = (idx + 1) % pattern.length;
+    dash = !dash;
+  }
+};
+
+ 
+ function createTheGraphContents()
+ {
+	var canvasID = "myCanvas";
+	var selectionCanvasID = "MyCanvas2";
+	var theDebuggingTextAreaID = "debugTA";
+	
+	var theElements = [{"name":"a","description":"one","contentCount":10},{"name":"b","description":"two","contentCount":1},{"name":"c","description":"three","contentCount":11},{"name":"d","description":"four","contentCount":30},{"name":"e","description":"five","contentCount":21},{"name":"f","description":"six","contentCount":19},{"name":"g","description":"seven","contentCount":13}];
+	var adjacencyList = [[1,2],[0],[0,3],[2,4,5],[3],[3],[]];
+	var levelRanges = [[0,10],[10,20],[21,30]];
+	
+	drawTheChart(canvasID,selectionCanvasID,levelRanges,theElements,adjacencyList,theDebuggingTextAreaID);
+	displayDebugInformation();
+	
+ }
+ 
+ 
+ 
+  var started = false;
+  
+ function handleMouseOver(evt) {
+	
+	//alert('jh');
+	var canvas=document.getElementById("myCanvas");
+	var context=canvas.getContext("2d");
+	
+	var x, y;
+
+    // Get the mouse position relative to the canvas element.
+    if (evt.layerX || evt.layerX == 0) { // Firefox
+      x = evt.layerX;
+      y = evt.layerY;
+    } else if (evt.offsetX || evt.offsetX == 0) { // Opera
+      x = evt.offsetX;
+      y = evt.offsetY;
+    }
+	//x = evt.clientX,y = evt.clientY;
+	context.moveTo(x, y);
+	var imgd = context.getImageData(x,y, 1, 1);
+	var pix = imgd.data;
+	
+	for(var i =0;i<pix.length;i+=4)
+	{
+		var val1 = pix[i]; // red
+		var val2 = pix[i+1]; // green
+		var val3 = pix[i+2]; // blue
+		//pix[i+3] = 1; // blue
+    }
+	
+	var locr = document.getElementById('col');
+	locr.value = val1 + ":" +val2 +":" +val3; 
+	
+	// Draw the ImageData at the given (x,y) coordinates.
+	//context.putImageData(imgd, x, y);
+	/*if (!started) {
+      context.beginPath();
+      context.moveTo(x, y);
+      started = true;
+    } else {
+      context.lineTo(x, y);
+      context.stroke();
+    }*/
+}
+ 
+
+function init()
+{
+	createTheGraphContents();
+
+	canvas2 = document.getElementById("MyCanvas2");
+	canvas2.addEventListener("mousedown", handleMouseDown);
+	canvas2.addEventListener("mouseup", handleMouseUp);
+	canvas2.addEventListener("mousemove", handleMouseMove);
+}
+
+
+function mouseSelect(e)
+{
+/*  if( isMenu )
+  {
+    if( overpopupmenu == false )
+    {
+      isMenu = false ;
+      overpopupmenu = false;
+      document.getElementById('menudiv').style.display = "none" ;
+      return true ;
+    }
+    return true ;
+  }
+  return false;*/
+}
+
+// POP UP MENU
+function  ItemSelMenu(e)
+{
+   
+
+	/*var obj = ns6 ? e.target.parentNode : event.srcElement.parentElement; 
+	if (ns6)
+	{
+	document.getElementById('menudiv').style.left = e.clientX+document.body.scrollLeft + "px";
+	document.getElementById('menudiv').style.top = e.clientY+document.body.scrollTop + "px";
+	} 
+	else
+	{
+	document.getElementById('menudiv').style.pixelLeft = event.clientX;//+document.body.scrollLeft;
+	document.getElementById('menudiv').style.pixelTop = event.clientY;//+document.body.scrollTop;
+	}
+
+	document.getElementById('menudiv').style.display = "";
+	document.getElementById('desc').style.backgroundColor='#FFFFAA';
+
+	isMenu = true;
+
+	e.preventDefault();*/
+
+  //e.stopPropagation(); 
+  //event.cancelBubble = true;
+  
+  return false;
+}
+
+/*
+if(canvas.addEventListener)
+	canvas.addEventListener('contextmenu',ItemSelMenu ,false);
+else if(canvas.attachEvent)
+	canvas.attachEvent('oncontextmenu',ItemSelMenu);
+
+if(canvas.addEventListener)
+	canvas.addEventListener('mousedown', mouseSelect);
+else if(canvas.attachEvent)
+	canvas.attachEvent('onmousedown',mouseSelect);
+*/
+</script>
+
+</head>
+<body onload="init()">
+
+	<div id="menudiv" style="position:absolute; display:none; top:50px; left:50px;z-index:10000;" onmouseover="javascript:overpopupmenu=true;" onmouseout="javascript:overpopupmenu=false;">
+		<table width=82 cellspacing=1 cellpadding=0>
+		  <tr><td>
+			<table width=80 cellspacing=0 cellpadding=0>
+			  <tr>
+				<td id="desc" bgcolor="#FFFFAA" width="80" height="16" >The description goes here</td>
+			  </tr>
+			  
+			</table>
+		  </td></tr>
+		</table>
+	</div>
+
+	<div id="omw_scrollpane">
+		<!--div id="container"-->
+			<canvas id="MyCanvas2" width="600" height="600"  style="z-index: 2; position:absolute; left:0px; top:0px;" onmousemove="handleMouseOver(event)"> doesnt support!</canvas>	    
+			<canvas id="myCanvas" width="600" height="600"   style="z-index: 1; position:absolute; left:0px; top:0px;" name="superCanvas"  >wassup! ur browser doesnt support canvas element.. do something!</canvas>
+		<!--/div-->
+	</div>
+	
+	<div id = "debug" style="float:right;">
+	<button type="submit" id="zoomin"><img src = "D:\Apache Software Foundation\Tomcat 7.0\webapps\examples\jsp\jsp2\el\Reg\zoom_in.png" width = "20px" height = "20px" style="border:2px black"></button>
+	
+	<button type="submit" id="zoomout"><img src="D:\Apache Software Foundation\Tomcat 7.0\webapps\examples\jsp\jsp2\el\Reg\zoom_out.png" width = "20px" height = "20px" style="border:2px black"></button>
+	
+	<input type = "textfield" value="" id = "col">
+	
+	<br>
+	<br>
+	Debugging TextArea:
+	<br>
+	<textarea id="debugTA" cols="40" rows="5" name="debugTA">
+	</textarea>
+	</div>
+</body>
+</html>
